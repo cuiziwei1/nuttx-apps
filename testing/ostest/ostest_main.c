@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/testing/ostest/ostest_main.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -276,7 +278,8 @@ static int user_main(int argc, char *argv[])
    * verify that status is retained correctly.
    */
 
-#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
+#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS) && \
+    defined(CONFIG_ENABLE_ALL_SIGNALS)
     {
       struct sigaction sa;
       int ret;
@@ -310,6 +313,14 @@ static int user_main(int argc, char *argv[])
   /* Test TLS */
 
   tls_test();
+  check_test_memory_usage();
+#endif
+
+#ifdef CONFIG_SCHED_THREAD_LOCAL
+  /* Test __thread/thread_local keyword */
+
+  printf("\nuser_main: sched_thread_local test\n");
+  sched_thread_local_test();
   check_test_memory_usage();
 #endif
 
@@ -370,8 +381,8 @@ static int user_main(int argc, char *argv[])
       check_test_memory_usage();
 #endif
 
-#if !defined(CONFIG_DISABLE_PTHREAD) && \
-    (defined(CONFIG_SCHED_LPWORK) || defined(CONFIG_SCHED_HPWORK))
+#if !defined(CONFIG_DISABLE_PTHREAD) && defined(CONFIG_BUILD_FLAT) && \
+    defined(CONFIG_SCHED_WORKQUEUE)
       /* Check work queues */
 
       printf("\nuser_main: wqueue test\n");
@@ -488,25 +499,35 @@ static int user_main(int argc, char *argv[])
 #if !defined(CONFIG_DISABLE_MQUEUE) && !defined(CONFIG_DISABLE_PTHREAD)
       /* Verify pthreads and message queues */
 
-      printf("\nuser_main: message queue test\n");
-      mqueue_test();
-      check_test_memory_usage();
-#endif
-
-#if !defined(CONFIG_DISABLE_MQUEUE) && !defined(CONFIG_DISABLE_PTHREAD)
-      /* Verify pthreads and message queues */
-
       printf("\nuser_main: timed message queue test\n");
       timedmqueue_test();
       check_test_memory_usage();
 #endif
 
+#ifndef CONFIG_DISABLE_ALL_SIGNALS
       /* Verify that we can modify the signal mask */
 
       printf("\nuser_main: sigprocmask test\n");
       sigprocmask_test();
       check_test_memory_usage();
 
+#if !defined(CONFIG_DISABLE_MQUEUE) && !defined(CONFIG_DISABLE_PTHREAD)
+      /* Verify pthreads and message queues */
+
+      printf("\nuser_main: message queue test\n");
+      mqueue_test();
+      check_test_memory_usage();
+#endif
+
+#if defined(CONFIG_SIG_SIGSTOP_ACTION) && defined(CONFIG_SIG_SIGKILL_ACTION) && \
+    !defined(CONFIG_BUILD_KERNEL)
+      printf("\nuser_main: signal action test\n");
+      suspend_test();
+      check_test_memory_usage();
+#endif
+#endif /* !CONFIG_DISABLE_ALL_SIGNALS */
+
+#ifdef CONFIG_ENABLE_ALL_SIGNALS
       /* Verify signal handlers */
 
       printf("\nuser_main: signal handler test\n");
@@ -517,27 +538,40 @@ static int user_main(int argc, char *argv[])
       signest_test();
       check_test_memory_usage();
 
-#if defined(CONFIG_SIG_SIGSTOP_ACTION) && defined(CONFIG_SIG_SIGKILL_ACTION) && \
-    !defined(CONFIG_BUILD_KERNEL)
-      printf("\nuser_main: signal action test\n");
-      suspend_test();
-      check_test_memory_usage();
-#endif
-
 #ifndef CONFIG_DISABLE_POSIX_TIMERS
       /* Verify posix timers (with SIGEV_SIGNAL) */
 
       printf("\nuser_main: POSIX timer test\n");
       timer_test();
       check_test_memory_usage();
+#endif
+#endif
 
-#ifdef CONFIG_SIG_EVTHREAD
+#ifdef CONFIG_BUILD_FLAT
+      printf("\nuser_main: spinlock test\n");
+      spinlock_test();
+      check_test_memory_usage();
+
+      printf("\nuser_main: wdog test\n");
+      wdog_test();
+      check_test_memory_usage();
+
+      /* Verify hrtimer */
+
+#  ifdef CONFIG_HRTIMER
+      printf("\nuser_main: hrtimer test\n");
+      hrtimer_test();
+      check_test_memory_usage();
+#  endif
+#endif
+
+#if !defined(CONFIG_DISABLE_POSIX_TIMERS) && \
+    defined(CONFIG_SIG_EVTHREAD)
       /* Verify posix timers (with SIGEV_THREAD) */
 
       printf("\nuser_main: SIGEV_THREAD timer test\n");
       sigev_thread_test();
       check_test_memory_usage();
-#endif
 #endif
 
 #if !defined(CONFIG_DISABLE_PTHREAD) && CONFIG_RR_INTERVAL > 0
@@ -596,7 +630,7 @@ static int user_main(int argc, char *argv[])
       vfork_test();
 #endif
 
-#if defined(CONFIG_SMP_CALL) && defined(CONFIG_BUILD_FLAT)
+#if defined(CONFIG_SMP) && defined(CONFIG_BUILD_FLAT)
       printf("\nuser_main: smp call test\n");
       smp_call_test();
 #endif
@@ -606,6 +640,14 @@ static int user_main(int argc, char *argv[])
 
       printf("\nuser_main: nxevent test\n");
       nxevent_test();
+      check_test_memory_usage();
+#endif
+
+#if defined(CONFIG_ARCH_PERF_EVENTS) && !defined(CONFIG_ARCH_PERF_EVENTS_USER_ACCESS)
+      /* Verify performance event time counter */
+
+      printf("\nuser_main: performance event time counter test\n");
+      perf_gettime_test();
       check_test_memory_usage();
 #endif
 
@@ -689,7 +731,7 @@ int main(int argc, FAR char **argv)
   stdio_test();
 
 #ifdef SDCC
-  /* I am not yet certain why SDCC does not like the following initilizers.
+  /* I am not yet certain why SDCC does not like the following initializers.
    * It involves some issues with 2- vs 3-byte pointer types.
    */
 

@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/testing/testsuites/kernel/sched/cases/api_pthread_test_007.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -21,7 +23,6 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-
 #include <nuttx/config.h>
 #include <stdio.h>
 #include <syslog.h>
@@ -40,22 +41,33 @@
 #include "SchedTest.h"
 
 /****************************************************************************
+ * Private Type Declarations
+ ****************************************************************************/
+
+struct resource_s
+{
+  pthread_mutex_t mutex;
+  int run_flag;
+};
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: sched_pthread07_threadroutine
+ * Name: schedpthread07threadroutine
  ****************************************************************************/
 
-static void *sched_pthread07_threadroutine(void *arg)
+static void *schedpthread07threadroutine(void *arg)
 {
+  struct resource_s *resource = (struct resource_s *)arg;
   int i;
-  pthread_mutex_t sched_pthread_test07_mutex = PTHREAD_MUTEX_INITIALIZER;
+
   for (i = 0; i < 100; i++)
     {
-      pthread_mutex_lock(&sched_pthread_test07_mutex);
-      (*((int *)arg))++;
-      pthread_mutex_unlock(&sched_pthread_test07_mutex);
+      pthread_mutex_lock(&resource->mutex);
+      resource->run_flag++;
+      pthread_mutex_unlock(&resource->mutex);
     }
 
   return NULL;
@@ -73,16 +85,20 @@ void test_nuttx_sched_pthread07(FAR void **state)
 {
   int res;
   pthread_t pt_1, pt_2, pt_3;
-  int run_flag = 0;
+  struct resource_s resource =
+  {
+    .mutex = PTHREAD_MUTEX_INITIALIZER,
+    .run_flag = 0
+  };
 
-  res = pthread_create(&pt_1, NULL,
-                       (void *)sched_pthread07_threadroutine, &run_flag);
+  res = pthread_create(&pt_1, NULL, (void *)schedpthread07threadroutine,
+                       &resource);
   assert_int_equal(res, OK);
-  res = pthread_create(&pt_2, NULL,
-                       (void *)sched_pthread07_threadroutine, &run_flag);
+  res = pthread_create(&pt_2, NULL, (void *)schedpthread07threadroutine,
+                       &resource);
   assert_int_equal(res, OK);
-  res = pthread_create(&pt_3, NULL,
-                       (void *)sched_pthread07_threadroutine, &run_flag);
+  res = pthread_create(&pt_3, NULL, (void *)schedpthread07threadroutine,
+                       &resource);
   assert_int_equal(res, OK);
 
   pthread_join(pt_1, NULL);
@@ -90,5 +106,5 @@ void test_nuttx_sched_pthread07(FAR void **state)
   pthread_join(pt_3, NULL);
   sleep(5);
 
-  assert_int_equal(run_flag, 300);
+  assert_int_equal(resource.run_flag, 300);
 }

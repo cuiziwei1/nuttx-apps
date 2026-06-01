@@ -1,6 +1,8 @@
 ############################################################################
 # apps/system/uorb/Makefile
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.  The
@@ -20,12 +22,23 @@
 
 include $(APPDIR)/Make.defs
 
-CSRCS    += $(wildcard uORB/*.c)
+CSRCS    += uORB/uORB.c
 CSRCS    += $(wildcard sensor/*.c)
+
+ifneq ($(CONFIG_UORB_LOOP_MAX_EVENTS),)
+ifneq ($(CONFIG_UORB_LOOP_MAX_EVENTS),0)
+CSRCS    += uORB/loop.c uORB/epoll.c
+endif
+endif
 
 ifneq ($(CONFIG_UORB_LISTENER),)
 MAINSRC  += listener.c
 PROGNAME += uorb_listener
+endif
+
+ifneq ($(CONFIG_UORB_GENERATOR),)
+MAINSRC  += generator.c
+PROGNAME += uorb_generator
 endif
 
 ifneq ($(CONFIG_UORB_TESTS),)

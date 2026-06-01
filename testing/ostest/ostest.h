@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/testing/ostest/ostest.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -209,6 +211,16 @@ void signest_test(void);
 
 void suspend_test(void);
 
+/* wdog.c *******************************************************************/
+
+void wdog_test(void);
+
+/* hrtimer.c ****************************************************************/
+
+#ifdef CONFIG_HRTIMER
+void hrtimer_test(void);
+#endif
+
 /* posixtimers.c ************************************************************/
 
 void timer_test(void);
@@ -229,6 +241,10 @@ void sporadic2_test(void);
 /* tls.c ********************************************************************/
 
 void tls_test(void);
+
+/* sched_thread_local.c *****************************************************/
+
+void sched_thread_local_test(void);
 
 /* pthread_rwlock.c *********************************************************/
 
@@ -272,8 +288,18 @@ void setjmp_test(void);
 
 /* smp_call.c ***************************************************************/
 
-#ifdef CONFIG_SMP_CALL
+#ifdef CONFIG_SMP
 void smp_call_test(void);
+#endif
+
+/* spinlock.c ***************************************************************/
+
+void spinlock_test(void);
+
+/* perf_gettime.c ***********************************************************/
+
+#ifdef CONFIG_ARCH_HAVE_PERF_EVENTS
+void perf_gettime_test(void);
 #endif
 
 /* APIs exported (conditionally) by the OS specifically for testing of

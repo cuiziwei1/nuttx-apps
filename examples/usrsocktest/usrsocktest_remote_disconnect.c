@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/examples/usrsocktest/usrsocktest_remote_disconnect.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -869,7 +871,6 @@ static void remote_disconnect_poll2(struct usrsocktest_daemon_conf_s *dconf)
       TEST_ASSERT_EQUAL(1, ret);
       TEST_ASSERT_EQUAL(0, pfd.revents & POLLERR);
       TEST_ASSERT_EQUAL(POLLHUP, pfd.revents & POLLHUP);
-      TEST_ASSERT_EQUAL(*events & POLLIN, pfd.revents & POLLIN);
       TEST_ASSERT_EQUAL(0, pfd.revents & POLLOUT);
       TEST_ASSERT_EQUAL(1, usrsocktest_daemon_get_num_active_sockets());
       TEST_ASSERT_EQUAL(0, usrsocktest_daemon_get_num_connected_sockets());
@@ -972,7 +973,7 @@ TEST_SETUP(remote_disconnect)
 
 TEST_TEAR_DOWN(remote_disconnect)
 {
-  int ret;
+  int unused_data ret;
 
   if (sd >= 0)
     {

@@ -1,6 +1,8 @@
 ############################################################################
 # apps/boot/mcuboot/Makefile
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.  The
@@ -42,6 +44,9 @@ endif
 CFLAGS += -Wno-undef -Wno-unused-but-set-variable
 
 CSRCS := $(MCUBOOT_UNPACK)/boot/bootutil/src/boot_record.c \
+         $(MCUBOOT_UNPACK)/boot/bootutil/src/bootutil_area.c \
+         $(MCUBOOT_UNPACK)/boot/bootutil/src/bootutil_img_hash.c \
+         $(MCUBOOT_UNPACK)/boot/bootutil/src/bootutil_loader.c \
          $(MCUBOOT_UNPACK)/boot/bootutil/src/bootutil_misc.c \
          $(MCUBOOT_UNPACK)/boot/bootutil/src/bootutil_public.c \
          $(MCUBOOT_UNPACK)/boot/bootutil/src/caps.c \

@@ -1,6 +1,8 @@
 # ##############################################################################
 # apps/system/uorb/CMakeLists.txt
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
 # additional information regarding copyright ownership.  The ASF licenses this
@@ -27,7 +29,11 @@ if(CONFIG_UORB)
 
   nuttx_add_library(uorb STATIC)
 
-  file(GLOB_RECURSE CSRCS "sensor/*.c" "uORB/*.c")
+  file(GLOB_RECURSE CSRCS "sensor/*.c" "uORB/uORB.c")
+
+  if(CONFIG_UORB_LOOP_MAX_EVENTS)
+    list(APPEND CSRCS "uORB/loop.c" "uORB/epoll.c")
+  endif()
 
   if(CONFIG_UORB_LISTENER)
     nuttx_add_application(
@@ -41,6 +47,22 @@ if(CONFIG_UORB)
       ${CONFIG_UORB}
       SRCS
       listener.c
+      DEPENDS
+      uorb)
+  endif()
+
+  if(CONFIG_UORB_GENERATOR)
+    nuttx_add_application(
+      NAME
+      uorb_generator
+      PRIORITY
+      ${CONFIG_UORB_PRIORITY}
+      STACKSIZE
+      ${CONFIG_UORB_STACKSIZE}
+      MODULE
+      ${CONFIG_UORB}
+      SRCS
+      generator.c
       DEPENDS
       uorb)
   endif()

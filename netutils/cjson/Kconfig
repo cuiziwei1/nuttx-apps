@@ -14,7 +14,7 @@ if NETUTILS_CJSON
 
 config NETUTILS_CJSON_URL
 	string "URL where cJSON library can be downloaded"
-	default "https://github.com/DaveGamble/cJSON/archive"
+	default "https://github.com/DaveGamble/cJSON/archive/refs/tags"
 
 config NETUTILS_CJSON_VERSION
 	string "Version number"
@@ -37,6 +37,10 @@ config CJSON_TEST_PRIORITY
 config CJSON_TEST_STACKSIZE
 	int "stack size"
 	default 102400
+
+config CJSON_NESTING_LIMIT
+	int "NESTING_LIMIT"
+	default 100
 
 endif # NETUTILS_CJSON_TEST
 

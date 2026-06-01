@@ -1,6 +1,8 @@
 # ##############################################################################
 # apps/boot/mcuboot/CMakeLists.txt
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
 # additional information regarding copyright ownership.  The ASF licenses this
@@ -31,14 +33,6 @@ if(CONFIG_BOOT_MCUBOOT)
           ${CMAKE_CURRENT_LIST_DIR}/mcuboot
           BINARY_DIR
           ${CMAKE_BINARY_DIR}/apps/boot/mcuboot/mcuboot
-          CONFIGURE_COMMAND
-          ""
-          BUILD_COMMAND
-          ""
-          INSTALL_COMMAND
-          ""
-          TEST_COMMAND
-          ""
       DOWNLOAD_NO_PROGRESS true
       TIMEOUT 30)
 
@@ -51,6 +45,9 @@ if(CONFIG_BOOT_MCUBOOT)
 
   set(SRCS
       mcuboot/boot/bootutil/src/boot_record.c
+      mcuboot/boot/bootutil/src/bootutil_area.c
+      mcuboot/boot/bootutil/src/bootutil_img_hash.c
+      mcuboot/boot/bootutil/src/bootutil_loader.c
       mcuboot/boot/bootutil/src/bootutil_misc.c
       mcuboot/boot/bootutil/src/bootutil_public.c
       mcuboot/boot/bootutil/src/caps.c
@@ -102,9 +99,15 @@ if(CONFIG_BOOT_MCUBOOT)
                                PRIVATE mcuboot/ext/tinycrypt/lib/include)
   endif()
 
-  target_include_directories(mcuboot PUBLIC mcuboot/boot/nuttx/include)
-  target_include_directories(mcuboot PUBLIC mcuboot/boot/bootutil/include)
+  set(INCDIR ${CMAKE_CURRENT_LIST_DIR}/mcuboot/boot/nuttx/include
+             ${CMAKE_CURRENT_LIST_DIR}/mcuboot/boot/bootutil/include)
+  target_include_directories(mcuboot PRIVATE ${INCDIR})
 
   target_compile_options(mcuboot PRIVATE -Wno-undef)
   target_sources(mcuboot PRIVATE ${SRCS})
+
+  set_property(
+    TARGET nuttx
+    APPEND
+    PROPERTY NUTTX_INCLUDE_DIRECTORIES ${INCDIR})
 endif()

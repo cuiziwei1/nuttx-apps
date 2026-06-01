@@ -1,6 +1,8 @@
 # ##############################################################################
 # apps/examples/udp/CMakeLists.txt
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
 # additional information regarding copyright ownership.  The ASF licenses this
@@ -19,5 +21,60 @@
 # ##############################################################################
 
 if(CONFIG_EXAMPLES_UDP)
-  nuttx_add_application(NAME udp)
+
+  # Basic UDP networking test
+
+  set(CSRCS udp_cmdline.c)
+
+  if(CONFIG_EXAMPLES_UDP_NETINIT)
+    list(APPEND CSRCS udp_netinit.c)
+  endif()
+
+  # Target 1 Files
+
+  if(CONFIG_EXAMPLES_UDP_SERVER1)
+    list(APPEND CSRCS udp_server.c)
+  else()
+    list(APPEND CSRCS udp_client.c)
+  endif()
+
+  nuttx_add_application(
+    NAME
+    ${CONFIG_EXAMPLES_UDP_PROGNAME1}
+    PRIORITY
+    ${CONFIG_EXAMPLES_UDP_PRIORITY1}
+    STACKSIZE
+    ${CONFIG_EXAMPLES_UDP_STACKSIZE1}
+    MODULE
+    ${CONFIG_EXAMPLES_UDP}
+    INCLUDE_DIRECTORIES
+    ${CMAKE_BINARY_DIR}/include/nuttx
+    SRCS
+    udp_target1.c
+    ${CSRCS})
+
+  # Target 2 Files
+
+  if(CONFIG_EXAMPLES_UDP_TARGET2)
+    if(CONFIG_EXAMPLES_UDP_SERVER1)
+      list(APPEND CSRCS udp_client.c)
+    else()
+      list(APPEND CSRCS udp_server.c)
+    endif()
+
+    nuttx_add_application(
+      NAME
+      ${CONFIG_EXAMPLES_UDP_PROGNAME2}
+      PRIORITY
+      ${CONFIG_EXAMPLES_UDP_PRIORITY2}
+      STACKSIZE
+      ${CONFIG_EXAMPLES_UDP_STACKSIZE2}
+      MODULE
+      ${CONFIG_EXAMPLES_UDP}
+      INCLUDE_DIRECTORIES
+      ${CMAKE_BINARY_DIR}/include/nuttx
+      SRCS
+      udp_target2.c
+      ${CSRCS})
+  endif()
 endif()

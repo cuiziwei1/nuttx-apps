@@ -1,14 +1,10 @@
 /****************************************************************************
  * apps/netutils/thttpd/tdate_parse.c
- * Parse string dates into internal form, stripped-down version
  *
- *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
- * Derived from the file of the same name in the original THTTPD package:
- *
- *   Copyright © 1995 by Jef Poskanzer <jef@mail.acme.com>.
- *   All rights reserved.
+ * SPDX-License-Identifier: BSD-2-Clause
+ * SPDX-FileCopyrightText: 2009 Gregory Nutt. All rights reserved.
+ * SPDX-FileCopyrightText: 1995 by Jef Poskanzer <jef@mail.acme.com>.
+ * SPDX-FileContributor: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -45,7 +41,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <time.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include "tdate_parse.h"
 
@@ -352,7 +348,7 @@ time_t tdate_parse(char *str)
 #endif /* Day of week not yet supported by NuttX */
   else
     {
-      return (time_t) - 1;
+      return -1;
     }
 
   if (tm.tm_year > 1900)

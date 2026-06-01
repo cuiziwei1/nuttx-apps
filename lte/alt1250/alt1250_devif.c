@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/lte/alt1250/alt1250_devif.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -121,7 +123,7 @@ int altdevice_send_command(FAR struct alt1250_s *dev, int fd,
     }
   else
     {
-      /* In case of send successed */
+      /* In case of send succeeded */
 
       ret = container->outparam ? REP_NO_ACK_WOFREE : REP_NO_ACK;
     }
@@ -171,7 +173,7 @@ int altdevice_seteventbuff(int fd, FAR struct alt_evtbuffer_s *buffer)
  ****************************************************************************/
 
 int altdevice_getevent(int fd, FAR uint64_t *evtbitmap,
-                       FAR struct alt_container_s **replys)
+                       FAR struct alt_container_s **replies)
 {
   int ret = -EIO;
   struct alt_readdata_s dat;
@@ -181,7 +183,7 @@ int altdevice_getevent(int fd, FAR uint64_t *evtbitmap,
     {
       ret = OK;
       *evtbitmap = dat.evtbitmap;
-      *replys = dat.head;
+      *replies = dat.head;
     }
 
   return ret;

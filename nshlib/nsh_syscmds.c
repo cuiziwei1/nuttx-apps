@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/nshlib/nsh_syscmds.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -25,6 +27,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/power/pm.h>
+#include <nuttx/rpmsg/rpmsg.h>
 #include <nuttx/rptun/rptun.h>
 #include <nuttx/streams.h>
 #include <sys/boardctl.h>
@@ -105,7 +108,7 @@ static FAR const char *const g_resetcause[] =
   "cpu_rtc_watchdog",
   "pin",
   "lowpower",
-  "unkown"
+  "unknown"
 };
 #endif
 
@@ -118,6 +121,7 @@ static FAR const char * const g_resetflag[] =
   "panic",
   "bootloader",
   "recovery",
+  "restore",
   "factory",
   NULL
 };
@@ -290,7 +294,7 @@ int cmd_pmconfig(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
       if (argc == 4)
         {
           ctrl.domain = atoi(argv[3]);
-          if (ctrl.domain < 0 || ctrl.domain >= CONFIG_PM_NDOMAINS)
+          if (ctrl.domain >= CONFIG_PM_NDOMAINS)
             {
               nsh_error(vtbl, g_fmtargrange, argv[3]);
               return ERROR;
@@ -506,7 +510,7 @@ int cmd_reset_cause(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
 
   if (cause.cause != BOARDIOC_RESETCAUSE_CPU_SOFT)
     {
-      nsh_output(vtbl, "%s(%lu)\n",
+      nsh_output(vtbl, "%s(%" PRIu32 ")\n",
              g_resetcause[cause.cause], cause.flag);
     }
   else
@@ -581,11 +585,17 @@ static int cmd_rpmsg_once(FAR struct nsh_vtbl_s *vtbl,
 
       ping.times = atoi(argv[3]);
       ping.len   = atoi(argv[4]);
-      ping.ack   = atoi(argv[5]);
+      ping.cmd   = atoi(argv[5]);
       ping.sleep = atoi(argv[6]);
 
       cmd = RPMSGIOC_PING;
       val = (unsigned long)&ping;
+    }
+#endif
+#ifdef CONFIG_RPMSG_TEST
+  else if (strcmp(argv[1], "test") == 0)
+    {
+      cmd = RPMSGIOC_TEST;
     }
 #endif
   else if (rpmsg_cb && rpmsg_cb(&cmd, &val, argv) == OK)
@@ -638,17 +648,19 @@ static int cmd_rpmsg_recursive(FAR struct nsh_vtbl_s *vtbl,
 static int cmd_rpmsg_help(FAR struct nsh_vtbl_s *vtbl, int argc,
                           FAR char **argv)
 {
-  nsh_output(vtbl, "%s <panic|dump> <path>\n", argv[0]);
+  nsh_output(vtbl, "%s <panic|dump|test> <path>\n", argv[0]);
 #ifdef CONFIG_RPMSG_PING
-  nsh_output(vtbl, "%s ping <path> <times> <length> <ack> "
+  nsh_output(vtbl, "%s ping <path> <times> <length> <cmd> "
              "<period(ms)>\n\n", argv[0]);
   nsh_output(vtbl, "<times>      Number of ping operations.\n");
   nsh_output(vtbl, "<length>     The length of each ping packet.\n");
-  nsh_output(vtbl, "<ack>        Whether the peer acknowlege or "
+  nsh_output(vtbl, "<cmd>        Whether the peer acknowledge or "
              "check data.\n");
-  nsh_output(vtbl, "             0 - No acknowledge and check.\n");
-  nsh_output(vtbl, "             1 - Acknowledge, no data check.\n");
-  nsh_output(vtbl, "             2 - Acknowledge and data check.\n");
+  nsh_output(vtbl, "             Bit0 - Request need ack or not.\n");
+  nsh_output(vtbl, "             Bit1 - Check the data or not.\n");
+  nsh_output(vtbl, "             Bit2 - Random length or not.\n");
+  nsh_output(vtbl, "             Bit4~7 - Request or response or other"
+                                          "command for future use.\n");
   nsh_output(vtbl, "<sleep(ms)>  Sleep interval between two operations.\n");
 #endif
   nsh_output(vtbl, "<path>       Rpmsg device path.\n\n");

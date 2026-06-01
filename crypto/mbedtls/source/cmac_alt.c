@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/crypto/mbedtls/source/cmac_alt.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -105,7 +107,12 @@ int mbedtls_cipher_cmac_update(FAR mbedtls_cipher_context_t *ctx,
   ctx->cmac_ctx->dev.crypt.flags |= COP_FLAG_UPDATE;
   ctx->cmac_ctx->dev.crypt.src = (caddr_t)input;
   ctx->cmac_ctx->dev.crypt.len = ilen;
-  return cryptodev_crypt(&ctx->cmac_ctx->dev);
+  if (cryptodev_crypt(&ctx->cmac_ctx->dev) != 0)
+    {
+      return MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA;
+    }
+
+  return 0;
 }
 
 int mbedtls_cipher_cmac_finish(FAR mbedtls_cipher_context_t *ctx,
@@ -121,6 +128,11 @@ int mbedtls_cipher_cmac_finish(FAR mbedtls_cipher_context_t *ctx,
   ctx->cmac_ctx->dev.crypt.flags = 0;
   ctx->cmac_ctx->dev.crypt.mac = (caddr_t)output;
   ret = cryptodev_crypt(&ctx->cmac_ctx->dev);
+  if (ret != 0)
+    {
+      ret = MBEDTLS_ERR_CIPHER_BAD_INPUT_DATA;
+    }
+
   cryptodev_free_session(&ctx->cmac_ctx->dev);
   cryptodev_free(&ctx->cmac_ctx->dev);
   return ret;

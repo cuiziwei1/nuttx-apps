@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/netutils/netinit/netinit.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -34,7 +36,7 @@
 #endif
 
 #include <arpa/inet.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <pthread.h>
@@ -202,11 +204,7 @@
  * signal indicating a change in network status.
  */
 
-#ifdef CONFIG_SYSTEM_TIME64
-#  define LONG_TIME_SEC    (60*60)   /* One hour in seconds */
-#else
-#  define LONG_TIME_SEC    (5*60)    /* Five minutes in seconds */
-#endif
+#define LONG_TIME_SEC      (60*60)   /* One hour in seconds */
 
 #define SHORT_TIME_SEC     (2)       /* 2 seconds */
 
@@ -284,7 +282,9 @@ static const uint16_t g_ipv6_netmask[8] =
     defined(HAVE_MAC)
 static void netinit_set_macaddr(void)
 {
-#if defined(CONFIG_NETINIT_UIDMAC)
+#if defined(CONFIG_NETINIT_MACADDR)
+  struct boardioc_macaddr_s req;
+#elif defined(CONFIG_NETINIT_UIDMAC)
   uint8_t uid[CONFIG_BOARDCTL_UNIQUEID_SIZE];
 #elif defined(CONFIG_NET_ETHERNET)
   uint8_t mac[IFHWADDRLEN];
@@ -294,7 +294,14 @@ static void netinit_set_macaddr(void)
 
   /* Many embedded network interfaces must have a software assigned MAC */
 
-#if defined(CONFIG_NETINIT_UIDMAC)
+#if defined(CONFIG_NETINIT_MACADDR)
+  strlcpy(req.ifname, NET_DEVNAME, IFNAMSIZ);
+  if (boardctl(BOARDIOC_MACADDR, (uintptr_t)&req) == 0)
+    {
+      netlib_setmacaddr(NET_DEVNAME, req.macaddr);
+    }
+
+#elif defined(CONFIG_NETINIT_UIDMAC)
   boardctl(BOARDIOC_UNIQUEID, (uintptr_t)&uid);
   uid[0] = (uid[0] & 0b11110000) | 2; /* Locally Administered MAC */
   netlib_setmacaddr(NET_DEVNAME, uid);
@@ -904,7 +911,7 @@ static int netinit_monitor(void)
 
               ninfo("Taking the link down\n");
 
-              ifr.ifr_flags = IFF_DOWN;
+              ifr.ifr_flags = 0;
               ret = ioctl(sd, SIOCSIFFLAGS, (unsigned long)&ifr);
               if (ret < 0)
                 {

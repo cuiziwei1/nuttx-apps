@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/system/ymodem/sb_main.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -29,12 +31,12 @@
 #include <pthread.h>
 #include <sys/stat.h>
 
-#include <nuttx/mm/circbuf.h>
+#include <nuttx/circbuf.h>
 
 #include "ymodem.h"
 
 /****************************************************************************
- * Private Type Definitions
+ * Private Typess
  ****************************************************************************/
 
 struct ymodem_priv_s

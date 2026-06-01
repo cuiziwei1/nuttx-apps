@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/system/settings/settings.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -80,7 +82,10 @@ static int      set_ip(FAR setting_t *setting, FAR struct in_addr *ip);
 static int      load(void);
 static void     save(void);
 static void     signotify(void);
+static void     dump_cache_locked(FAR bool *wrpend);
+#ifdef CONFIG_SYSTEM_SETTINGS_CACHED_SAVES
 static void     dump_cache(union sigval ptr);
+#endif
 
 /****************************************************************************
  * Private Data
@@ -147,6 +152,13 @@ static int get_setting(FAR char *key, FAR setting_t **setting)
 
   assert(*setting == NULL);
 
+  if (strnlen(key, CONFIG_SYSTEM_SETTINGS_KEY_SIZE) >=
+      CONFIG_SYSTEM_SETTINGS_KEY_SIZE)
+    {
+      ret = -EINVAL;
+      goto exit;
+    }
+
   for (i = 0; i < CONFIG_SYSTEM_SETTINGS_MAP_SIZE; i++)
     {
       if (map[i].type == SETTING_EMPTY)
@@ -155,7 +167,7 @@ static int get_setting(FAR char *key, FAR setting_t **setting)
           goto exit;
         }
 
-      if (strcmp(map[i].key, key) == 0)
+      if (strncmp(map[i].key, key, CONFIG_SYSTEM_SETTINGS_KEY_SIZE) == 0)
         {
           *setting = &map[i];
           goto exit;
@@ -196,16 +208,16 @@ static size_t get_string(FAR setting_t *setting, FAR char *buffer,
   if (setting->type == SETTING_STRING)
     {
       FAR const char *s = setting->val.s;
-      size_t len = strlen(s);
+      size_t len = strnlen(s, CONFIG_SYSTEM_SETTINGS_VALUE_SIZE);
 
+      assert(len < CONFIG_SYSTEM_SETTINGS_VALUE_SIZE);
       assert(len < size);
-      if (len >= size)
+      if (len >= CONFIG_SYSTEM_SETTINGS_VALUE_SIZE || len >= size)
         {
           return 0;
         }
 
-      strncpy(buffer, s, size);
-      buffer[size - 1] = '\0';
+      strlcpy(buffer, s, size);
 
       return len;
     }
@@ -216,7 +228,7 @@ static size_t get_string(FAR setting_t *setting, FAR char *buffer,
       inet_ntop(AF_INET, &setting->val.ip, buffer, size);
       buffer[size - 1] = '\0';
 
-      return strlen(buffer);
+      return strnlen(buffer, size);
     }
 
   return 0;
@@ -239,6 +251,8 @@ static size_t get_string(FAR setting_t *setting, FAR char *buffer,
 
 static int set_string(FAR setting_t *setting, FAR char *str)
 {
+  size_t len;
+
   assert(setting);
 
   if ((setting->type != SETTING_STRING) &&
@@ -247,20 +261,19 @@ static int set_string(FAR setting_t *setting, FAR char *str)
       return -EACCES;
     }
 
-  ASSERT(strlen(str) < CONFIG_SYSTEM_SETTINGS_VALUE_SIZE);
-  if (strlen(str) >= CONFIG_SYSTEM_SETTINGS_VALUE_SIZE)
+  len = strnlen(str, CONFIG_SYSTEM_SETTINGS_VALUE_SIZE);
+  if (len >= CONFIG_SYSTEM_SETTINGS_VALUE_SIZE)
     {
       return -EINVAL;
     }
 
-  if (strlen(str) && (sanity_check(str) < 0))
+  if (len > 0 && (sanity_check(str) < 0))
     {
       return -EINVAL;
     }
 
   setting->type = SETTING_STRING;
-  strncpy(setting->val.s, str, CONFIG_SYSTEM_SETTINGS_VALUE_SIZE);
-  setting->val.s[CONFIG_SYSTEM_SETTINGS_VALUE_SIZE - 1] = '\0';
+  strlcpy(setting->val.s, str, CONFIG_SYSTEM_SETTINGS_VALUE_SIZE);
 
   return OK;
 }
@@ -282,28 +295,32 @@ static int set_string(FAR setting_t *setting, FAR char *str)
 static int get_int(FAR setting_t *setting, FAR int *i)
 {
   assert(setting);
-  if ((setting->type != SETTING_INT) &&
-      (setting->type != SETTING_BOOL) &&
-      (setting->type != SETTING_FLOAT))
-    {
-      return -EACCES;
-    }
 
-  if (setting->type == SETTING_INT)
+  switch (setting->type)
     {
-      *i = setting->val.i;
-    }
-  else if (setting->type == SETTING_BOOL)
-    {
-      *i = !!setting->val.i;
-    }
-  else if (setting->type == SETTING_FLOAT)
-    {
-      *i = (int)setting->val.f;
-    }
-  else
-    {
-      return -EINVAL;
+      case SETTING_INT:
+        {
+          *i = setting->val.i;
+        }
+        break;
+
+      case SETTING_BOOL:
+        {
+          *i = !!setting->val.i;
+        }
+        break;
+
+      case SETTING_FLOAT:
+        {
+          *i = (int)setting->val.f;
+        }
+        break;
+
+      default:
+        {
+          return -EACCES;
+        }
+        break;
     }
 
   return OK;
@@ -357,19 +374,21 @@ static int set_int(FAR setting_t *setting, int i)
 static int get_bool(FAR setting_t *setting, FAR int *i)
 {
   assert(setting);
-  if ((setting->type != SETTING_BOOL) &&
-      (setting->type != SETTING_INT))
-    {
-      return -EACCES;
-    }
 
-  if ((setting->type == SETTING_INT) || (setting->type == SETTING_BOOL))
+  switch (setting->type)
     {
-      *i = !!setting->val.i;
-    }
-  else
-    {
-      return -EINVAL;
+      case SETTING_INT:
+      case SETTING_BOOL:
+        {
+          *i = !!setting->val.i;
+        }
+        break;
+
+      default:
+        {
+          return -EACCES;
+        }
+        break;
     }
 
   return OK;
@@ -421,23 +440,26 @@ static int set_bool(FAR setting_t *setting, int i)
 static int get_float(FAR setting_t *setting, FAR double *f)
 {
   assert(setting);
-  if ((setting->type != SETTING_FLOAT) &&
-      (setting->type != SETTING_INT))
-    {
-      return -EACCES;
-    }
 
-  if (setting->type == SETTING_FLOAT)
+  switch (setting->type)
     {
-      *f = setting->val.f;
-    }
-  else if (setting->type == SETTING_INT)
-    {
-      *f = (double)setting->val.i;
-    }
-  else
-    {
-      return -EINVAL;
+      case SETTING_FLOAT:
+        {
+          *f = setting->val.f;
+        }
+        break;
+
+      case SETTING_INT:
+        {
+          *f = (double)setting->val.i;
+        }
+        break;
+
+      default:
+        {
+          return -EACCES;
+        }
+        break;
     }
 
   return OK;
@@ -492,24 +514,26 @@ static int get_ip(FAR setting_t *setting, FAR struct in_addr *ip)
 {
   int ret;
   assert(setting);
-  if ((setting->type != SETTING_IP_ADDR) &&
-      (setting->type != SETTING_STRING))
-    {
-      return -EACCES;
-    }
 
-  if (setting->type == SETTING_IP_ADDR)
+  switch (setting->type)
     {
-      memcpy(ip, &setting->val.ip, sizeof(struct in_addr));
-      ret = OK;
-    }
-  else if (setting->type == SETTING_STRING)
-    {
-      ret = inet_pton(AF_INET, setting->val.s, ip);
-    }
-  else
-    {
-      ret = -EINVAL;
+      case SETTING_IP_ADDR:
+        {
+          memcpy(ip, &setting->val.ip, sizeof(struct in_addr));
+          ret = OK;
+        }
+        break;
+
+      case SETTING_STRING:
+        {
+          ret = inet_pton(AF_INET, setting->val.s, ip);
+        }
+        break;
+
+      default:
+        {
+          return -EACCES;
+        }
     }
 
   return ret;
@@ -611,12 +635,7 @@ static void save(void)
 #ifdef CONFIG_SYSTEM_SETTINGS_CACHED_SAVES
   timer_settime(g_settings.timerid, 0, &g_settings.trigger, NULL);
 #else
-  union sigval value =
-  {
-    .sival_ptr = &g_settings.wrpend,
-  };
-
-  dump_cache(value);
+  dump_cache_locked(&g_settings.wrpend);
 #endif
 }
 
@@ -650,6 +669,38 @@ static void signotify(void)
 }
 
 /****************************************************************************
+ * Name: dump_cache_locked
+ *
+ * Description:
+ *    Writes out the cached data to the appropriate storage.  The caller
+ *    must hold g_settings.mtx.
+ *
+ * Input Parameters:
+ *    wrpend           - pending write flag to clear after dumping
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+static void dump_cache_locked(FAR bool *wrpend)
+{
+  int i;
+
+  for (i = 0; i < CONFIG_SYSTEM_SETTINGS_MAX_STORAGES; i++)
+    {
+      if ((g_settings.store[i].file[0] != '\0') &&
+           g_settings.store[i].save_fn)
+        {
+          (void)g_settings.store[i].save_fn(g_settings.store[i].file);
+        }
+    }
+
+  *wrpend = false;
+}
+
+#ifdef CONFIG_SYSTEM_SETTINGS_CACHED_SAVES
+/****************************************************************************
  * Name: dump_cache
  *
  * Description:
@@ -665,39 +716,16 @@ static void signotify(void)
 
 static void dump_cache(union sigval ptr)
 {
-  int ret = OK;
-  FAR bool *wrpend = (bool *)ptr.sival_ptr;
-
-  int i;
+  FAR bool *wrpend = (FAR bool *)ptr.sival_ptr;
+  int ret;
 
   ret = pthread_mutex_lock(&g_settings.mtx);
-  if (ret < 0)
-    {
-      assert(0);
-    }
+  assert(ret >= 0);
 
-  for (i = 0; i < CONFIG_SYSTEM_SETTINGS_MAX_STORAGES; i++)
-    {
-      if ((g_settings.store[i].file[0] != '\0') &&
-           g_settings.store[i].save_fn)
-        {
-          ret = g_settings.store[i].save_fn(g_settings.store[i].file);
-#if 0
-          if (ret < 0)
-            {
-              /* What to do? We can't return anything from a void function.
-               *
-               * MIGHT BE A FUTURE REVISIT NEEDED
-               */
-            }
-#endif
-        }
-    }
-
-  *wrpend = false;
-
+  dump_cache_locked(wrpend);
   pthread_mutex_unlock(&g_settings.mtx);
 }
+#endif
 
 /****************************************************************************
  * Name: sanity_check
@@ -753,9 +781,9 @@ void settings_init(void)
   pthread_mutexattr_t attr;
 
   pthread_mutexattr_init(&attr);
-  pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
   pthread_mutexattr_setprotocol(&attr, PTHREAD_PRIO_INHERIT);
   pthread_mutex_init(&g_settings.mtx, &attr);
+  pthread_mutexattr_destroy(&attr);
 
   memset(map, 0, sizeof(map));
   memset(g_settings.store, 0, sizeof(g_settings.store));
@@ -806,11 +834,9 @@ int settings_setstorage(FAR char *file, enum storage_type_e type)
   int ret = OK;
   int idx = 0;
   uint32_t h;
+  size_t filelen;
 
-  if (!g_settings.initialized)
-    {
-      assert(0);
-    }
+  assert(g_settings.initialized);
 
   ret = pthread_mutex_lock(&g_settings.mtx);
   if (ret < 0)
@@ -831,16 +857,16 @@ int settings_setstorage(FAR char *file, enum storage_type_e type)
       goto errout;
     }
 
-  assert(strlen(file) < CONFIG_SYSTEM_SETTINGS_MAX_FILENAME);
-  if (strlen(file) >= CONFIG_SYSTEM_SETTINGS_MAX_FILENAME)
+  filelen = strnlen(file, CONFIG_SYSTEM_SETTINGS_MAX_FILENAME);
+  assert(filelen < CONFIG_SYSTEM_SETTINGS_MAX_FILENAME);
+  if (filelen >= CONFIG_SYSTEM_SETTINGS_MAX_FILENAME)
     {
       ret = -EINVAL;
       goto errout;
     }
 
   storage = &g_settings.store[idx];
-  strncpy(storage->file, file, sizeof(storage->file));
-  storage->file[sizeof(storage->file) - 1] = '\0';
+  strlcpy(storage->file, file, sizeof(storage->file));
 
   switch (type)
   {
@@ -906,10 +932,7 @@ int settings_sync(bool wait_dump)
   int ret = OK;
   uint32_t h;
 
-  if (!g_settings.initialized)
-    {
-      assert(0);
-    }
+  assert(g_settings.initialized);
 
   ret = pthread_mutex_lock(&g_settings.mtx);
   if (ret < 0)
@@ -969,10 +992,7 @@ int settings_notify(void)
   int ret;
   int idx = 0;
 
-  if (!g_settings.initialized)
-    {
-      assert(0);
-    }
+  assert(g_settings.initialized);
 
   ret = pthread_mutex_lock(&g_settings.mtx);
   if (ret < 0)
@@ -1024,10 +1044,7 @@ errout:
 
 int settings_hash(FAR uint32_t *h)
 {
-  if (!g_settings.initialized)
-    {
-      assert(0);
-    }
+  assert(g_settings.initialized);
 
   *h = g_settings.hash;
 
@@ -1060,10 +1077,7 @@ int settings_clear(void)
 {
   int ret;
 
-  if (!g_settings.initialized)
-    {
-      assert(0);
-    }
+  assert(g_settings.initialized);
 
   ret = pthread_mutex_lock(&g_settings.mtx);
   if (ret < 0)
@@ -1110,28 +1124,22 @@ int settings_create(FAR char *key, enum settings_type_e type, ...)
 {
   int ret = OK;
   FAR setting_t *setting = NULL;
+  size_t keylen;
   int j;
 
-  if (!g_settings.initialized)
-    {
-      assert(0);
-    }
+  assert(g_settings.initialized);
 
-  assert(type != SETTING_EMPTY);
-
-  assert(strlen(key));
-  if (strlen(key) == 0)
+  if (type == SETTING_EMPTY)
     {
       return -EINVAL;
     }
 
-  assert(strlen(key) < CONFIG_SYSTEM_SETTINGS_KEY_SIZE);
-  if (strlen(key) >= CONFIG_SYSTEM_SETTINGS_KEY_SIZE)
+  keylen = strnlen(key, CONFIG_SYSTEM_SETTINGS_KEY_SIZE);
+  if (keylen == 0 || keylen >= CONFIG_SYSTEM_SETTINGS_KEY_SIZE)
     {
       return -EINVAL;
     }
 
-  assert(isalpha(key[0]) && (sanity_check(key) == OK));
   if (!isalpha(key[0]) || (sanity_check(key) < 0))
     {
       return -EINVAL;
@@ -1145,7 +1153,7 @@ int settings_create(FAR char *key, enum settings_type_e type, ...)
 
   for (j = 0; j < CONFIG_SYSTEM_SETTINGS_MAP_SIZE; j++)
     {
-      if (strcmp(key, map[j].key) == 0)
+      if (strncmp(key, map[j].key, CONFIG_SYSTEM_SETTINGS_KEY_SIZE) == 0)
         {
           setting = &map[j];
 
@@ -1157,8 +1165,7 @@ int settings_create(FAR char *key, enum settings_type_e type, ...)
       if (map[j].type == SETTING_EMPTY)
         {
           setting = &map[j];
-          strncpy(setting->key, key, CONFIG_SYSTEM_SETTINGS_KEY_SIZE);
-          setting->key[CONFIG_SYSTEM_SETTINGS_KEY_SIZE - 1] = '\0';
+          strlcpy(setting->key, key, CONFIG_SYSTEM_SETTINGS_KEY_SIZE);
 
           /* This setting is empty/unused - we can use it */
 
@@ -1166,7 +1173,6 @@ int settings_create(FAR char *key, enum settings_type_e type, ...)
         }
     }
 
-  assert(setting);
   if (setting == NULL)
     {
       goto errout;
@@ -1310,13 +1316,9 @@ errout:
 int settings_type(FAR char *key, FAR enum settings_type_e *stype)
 {
   int ret;
-  FAR setting_t *setting;
+  FAR setting_t *setting = NULL;
 
-  if (!g_settings.initialized)
-    {
-      assert(0);
-    }
-
+  assert(g_settings.initialized);
   assert(stype != NULL);
   assert(key != NULL);
 
@@ -1358,13 +1360,9 @@ int settings_type(FAR char *key, FAR enum settings_type_e *stype)
 int settings_get(FAR char *key, enum settings_type_e type, ...)
 {
   int ret;
-  FAR setting_t *setting;
+  FAR setting_t *setting = NULL;
 
-  if (!g_settings.initialized)
-    {
-      assert(0);
-    }
-
+  assert(g_settings.initialized);
   assert(type != SETTING_EMPTY);
   assert(key[0] != '\0');
 
@@ -1456,14 +1454,10 @@ errout:
 int settings_set(FAR char *key, enum settings_type_e type, ...)
 {
   int ret;
-  FAR setting_t *setting;
+  FAR setting_t *setting = NULL;
   uint32_t h;
 
-  if (!g_settings.initialized)
-    {
-      assert(0);
-    }
-
+  assert(g_settings.initialized);
   assert(type != SETTING_EMPTY);
   assert(key[0] != '\0');
 
@@ -1566,11 +1560,7 @@ int settings_iterate(int idx, FAR setting_t *setting)
 {
   int ret;
 
-  if (!g_settings.initialized)
-    {
-      assert(0);
-    }
-
+  assert(g_settings.initialized);
   assert(setting);
 
   if ((idx < 0) || (idx >= CONFIG_SYSTEM_SETTINGS_MAP_SIZE))

@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/netutils/dhcp6c/dhcp6c.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -34,7 +36,7 @@
 #include <resolv.h>
 #include <string.h>
 #include <unistd.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>

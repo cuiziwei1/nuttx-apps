@@ -1,6 +1,8 @@
 ############################################################################
 # apps/netutils/netlib/Makefile
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.  The
@@ -45,7 +47,7 @@ CSRCS += netlib_getarptab.c
 endif
 endif
 ifeq ($(CONFIG_NETDB_DNSCLIENT),y)
-CSRCS += netlib_setipv4dnsaddr.c
+CSRCS += netlib_setipv4dnsaddr.c netlib_delipv4dnsaddr.c
 endif
 ifeq ($(CONFIG_NET_ROUTE),y)
 CSRCS += netlib_ipv4route.c netlib_ipv4router.c
@@ -55,6 +57,7 @@ CSRCS += netlib_iptables.c
 endif
 ifeq ($(CONFIG_NETUTILS_DHCPC),y)
 CSRCS += netlib_obtainipv4addr.c
+CSRCS += netlib_dhcp_ntp.c
 endif
 endif
 
@@ -69,7 +72,7 @@ CSRCS += netlib_autoconfig.c
 CSRCS += netlib_obtainipv6addr.c
 endif
 ifeq ($(CONFIG_NETDB_DNSCLIENT),y)
-CSRCS += netlib_setipv6dnsaddr.c
+CSRCS += netlib_setipv6dnsaddr.c netlib_delipv6dnsaddr.c
 endif
 ifeq ($(CONFIG_NET_ROUTE),y)
 CSRCS += netlib_ipv6route.c netlib_ipv6router.c
@@ -121,6 +124,10 @@ ifeq ($(CONFIG_NET_ETHERNET),y)
 CSRCS += netlib_setmacaddr.c netlib_getmacaddr.c
 endif
 
+ifeq ($(CONFIG_NET_VLAN),y)
+CSRCS += netlib_addvlan.c netlib_delvlan.c
+endif
+
 CSRCS += netlib_setmtu.c
 
 ifeq ($(CONFIG_WIRELESS_IEEE802154),y)
@@ -139,5 +146,23 @@ ifeq ($(CONFIG_NET_IPv4),y) # Not yet available for IPv6
 CSRCS += netlib_ipmsfilter.c
 endif
 endif
+
+# Network check support
+
+ifeq ($(CONFIG_NET_ARP_ACD),y)
+CSRCS += netlib_checkifconflict.c
+endif
+
+ifeq ($(CONFIG_MM_IOB),y)
+CSRCS += netlib_getiobinfo.c
+endif
+
+CSRCS += netlib_checkipconnectivity.c
+
+ifeq ($(CONFIG_NETUTILS_PING),y)
+CSRCS += netlib_checkifconnectivity.c
+endif
+
+CSRCS += netlib_checkhttpconnectivity.c
 
 include $(APPDIR)/Application.mk

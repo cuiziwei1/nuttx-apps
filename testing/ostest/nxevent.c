@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/testing/ostest/nxevent.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -26,6 +28,7 @@
 #include <nuttx/event.h>
 
 #include <stdio.h>
+#include <sched.h>
 #include <pthread.h>
 
 #include "ostest.h"
@@ -278,7 +281,7 @@ void nxevent_test(void)
 
   /* Lower priority */
 
-  sparam.sched_priority = PTHREAD_DEFAULT_PRIORITY - 1;
+  sparam.sched_priority = PTHREAD_DEFAULT_PRIORITY;
   pthread_attr_setschedparam(&attr, &sparam);
 
   /* Create thread */
@@ -301,7 +304,7 @@ void nxevent_test(void)
 
   /* Lower priority */
 
-  sparam.sched_priority = PTHREAD_DEFAULT_PRIORITY - 1;
+  sparam.sched_priority = PTHREAD_DEFAULT_PRIORITY;
   pthread_attr_setschedparam(&attr, &sparam);
 
   /* Create thread */
@@ -324,6 +327,53 @@ void nxevent_test(void)
 
   pthread_join(tid1, NULL);
   pthread_join(tid2, NULL);
+
+  /**************************************************************************/
+
+  /* 4. Event clear Test */
+
+  nxevent_post(&event, 0xff, NXEVENT_POST_SET);
+
+  /* Case 4.1: clear == 0, trywait == 0xf, wait == 0xf */
+
+  nxevent_clear(&event, 0);
+  NXEVENT_TEST(nxevent_wait(&event, 0xf, NXEVENT_WAIT_NOCLEAR), 0xf);
+  NXEVENT_TEST(nxevent_trywait(&event, 0xf, NXEVENT_WAIT_NOCLEAR), 0xf);
+
+  /* Case 4.2: clear == 0xf, trywait == 0xf */
+
+  nxevent_clear(&event, 0xf);
+  NXEVENT_TEST(nxevent_trywait(&event, 0xf, NXEVENT_WAIT_NOCLEAR), 0);
+
+  /* Case 4.3: clear == 0, trywait == 0xf0, wait == 0xf0 */
+
+  nxevent_clear(&event, 0);
+  NXEVENT_TEST(nxevent_wait(&event, 0xf0, NXEVENT_WAIT_NOCLEAR), 0xf0);
+  NXEVENT_TEST(nxevent_trywait(&event, 0xf0, NXEVENT_WAIT_NOCLEAR), 0xf0);
+
+  /* Case 4.4: clear == 0xf0, wait == 0xf0 */
+
+  nxevent_clear(&event, 0xf0);
+  NXEVENT_TEST(nxevent_trywait(&event, 0xf0, NXEVENT_WAIT_NOCLEAR), 0);
+
+  /**************************************************************************/
+
+  /* 5. Event get mask Test */
+
+  /* Case 5.1: post == 0xff */
+
+  nxevent_post(&event, 0xff, NXEVENT_POST_SET);
+  NXEVENT_TEST(nxevent_getmask(&event), 0xff)
+
+  /* Case 5.2: clear == 0xf */
+
+  nxevent_clear(&event, 0xf);
+  NXEVENT_TEST(nxevent_getmask(&event), 0xf0)
+
+  /* Case 5.3: clear == 0xf0 */
+
+  nxevent_clear(&event, 0xf0);
+  NXEVENT_TEST(nxevent_getmask(&event), 0)
 
   nxevent_reset(&event, 0);
   nxevent_destroy(&event);

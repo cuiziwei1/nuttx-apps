@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/system/iptables/iptables_utils.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -544,7 +546,7 @@ int iptables_parse_ip(FAR const char *str, FAR void *addr, FAR void *mask,
               return -EINVAL;
             }
 
-          *mask4 <<= 32 - prefixlen;
+          *mask4 >>= 32 - prefixlen;
         }
 #endif
 

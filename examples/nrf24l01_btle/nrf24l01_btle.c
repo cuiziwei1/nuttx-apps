@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/examples/nrf24l01_btle/nrf24l01_btle.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -25,7 +27,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <unistd.h>
 
 #include <nuttx/signal.h>
@@ -36,7 +38,6 @@
 #include <stdio.h>
 #include <poll.h>
 #include <fcntl.h>
-#include <unistd.h>
 
 #include "nrf24l01_btle.h"
 

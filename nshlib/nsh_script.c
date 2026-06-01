@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/nshlib/nsh_script.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -59,10 +61,11 @@ static int nsh_script_redirect(FAR struct nsh_vtbl_s *vtbl,
 
   if (CONFIG_NSH_SCRIPT_REDIRECT_PATH[0])
     {
-      fd = open(CONFIG_NSH_SCRIPT_REDIRECT_PATH, 0666);
+      fd = open(CONFIG_NSH_SCRIPT_REDIRECT_PATH,
+                O_WRONLY | O_CREAT | O_TRUNC, 0666);
       if (fd > 0)
         {
-          nsh_redirect(vtbl, 0, fd, save);
+          nsh_redirect(vtbl, 0, fd, fd, save);
         }
     }
 
@@ -72,7 +75,6 @@ static int nsh_script_redirect(FAR struct nsh_vtbl_s *vtbl,
       if (fd > 0)
         {
           nsh_undirect(vtbl, save);
-          close(fd);
         }
     }
 
@@ -161,7 +163,7 @@ int nsh_script(FAR struct nsh_vtbl_s *vtbl, FAR const FAR char *cmd,
 
           /* Now read the next line from the script file */
 
-          ret = readline_fd(buffer, CONFIG_NSH_LINELEN, vtbl->np.np_fd, -1);
+          ret = readline_fd(buffer, LINE_MAX, vtbl->np.np_fd, -1);
           if (ret >= 0)
             {
               /* Parse process the command.  NOTE:  this is recursive...

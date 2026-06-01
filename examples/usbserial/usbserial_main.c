@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/examples/usbserial/usbserial_main.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -33,7 +35,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/usbdev_trace.h>
@@ -456,12 +458,20 @@ int main(int argc, FAR char *argv[])
                 }
             }
 
+#ifdef CONFIG_EXAMPLES_USBSERIAL_CONFIG_WAIT
+          usleep(CONFIG_EXAMPLES_USBSERIAL_OUT_WAITING_TIME * 1000);
+#else
           sleep(1);
+#endif /* CONFIG_EXAMPLES_USBSERIAL_CONFIG_WAIT */
         }
 
 #else /* CONFIG_EXAMPLES_USBSERIAL_INONLY */
       printf("usbserial_main: Waiting\n");
+#ifdef CONFIG_EXAMPLES_USBSERIAL_CONFIG_WAIT
+      usleep(CONFIG_EXAMPLES_USBSERIAL_IN_WAITING_TIME * 1000);
+#else
       sleep(5);
+#endif /* CONFIG_EXAMPLES_USBSERIAL_CONFIG_WAIT */
 #endif /* CONFIG_EXAMPLES_USBSERIAL_INONLY */
 
       /* If USB tracing is enabled, then dump all collected trace data

@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/system/uorb/sensor/ppgd.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -31,7 +33,7 @@
 #ifdef CONFIG_DEBUG_UORB
 static const char sensor_ppgd_format[] =
   "timestamp:%" PRIu64 ",ppg0:%" PRIu32 ",ppg1:%" PRIu32 ","
-  "current:%" PRIu32 ",gain0:%" PRIu16 ",gain1:%" PRIu16 "";
+  "current:%" PRIu32 ",gain0:%hu,gain1:%hu";
 #endif
 
 /****************************************************************************

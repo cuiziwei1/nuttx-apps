@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/system/uorb/uORB/epoll.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -56,7 +58,6 @@ const struct orb_loop_ops_s g_orb_loop_epoll_ops =
 
 static int orb_loop_epoll_init(FAR struct orb_loop_s *loop)
 {
-  loop->running = false;
   loop->fd = epoll_create1(EPOLL_CLOEXEC);
   if (loop->fd < 0)
     {
@@ -73,13 +74,7 @@ static int orb_loop_epoll_run(FAR struct orb_loop_s *loop)
   int nfds;
   int i;
 
-  if (loop->running)
-    {
-      return -EBUSY;
-    }
-
-  loop->running = true;
-  while (loop->running)
+  while (1)
     {
       nfds = epoll_wait(loop->fd, et, CONFIG_UORB_LOOP_MAX_EVENTS, -1);
       if (nfds == -1 && errno != EINTR)
@@ -94,6 +89,10 @@ static int orb_loop_epoll_run(FAR struct orb_loop_s *loop)
             {
               continue;
             }
+          else if (handle == &loop->exit_handle)
+            {
+              return OK;
+            }
 
           if (et[i].events & EPOLLIN)
             {
@@ -106,7 +105,8 @@ static int orb_loop_epoll_run(FAR struct orb_loop_s *loop)
                   uorberr("epoll wait data in error! fd:%d", handle->fd);
                 }
             }
-          else if (et[i].events & EPOLLOUT)
+
+          if (et[i].events & EPOLLOUT)
             {
               if (handle->dataout_cb != NULL)
                 {
@@ -117,7 +117,8 @@ static int orb_loop_epoll_run(FAR struct orb_loop_s *loop)
                   uorberr("epoll wait data out error! fd:%d", handle->fd);
                 }
             }
-          else if (et[i].events & EPOLLPRI)
+
+          if (et[i].events & EPOLLPRI)
             {
               if (handle->eventpri_cb != NULL)
                 {
@@ -128,7 +129,8 @@ static int orb_loop_epoll_run(FAR struct orb_loop_s *loop)
                   uorberr("epoll wait events pri error! fd:%d", handle->fd);
                 }
             }
-          else if (et[i].events & EPOLLERR)
+
+          if (et[i].events & EPOLLERR)
             {
               if (handle->eventerr_cb != NULL)
                 {
@@ -149,7 +151,6 @@ static int orb_loop_epoll_uninit(FAR struct orb_loop_s *loop)
 {
   int ret;
 
-  loop->running = false;
   ret = close(loop->fd);
   if (ret < 0)
     {

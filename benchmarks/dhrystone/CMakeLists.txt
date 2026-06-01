@@ -1,6 +1,8 @@
 # ##############################################################################
 # apps/benchmarks/dhrystone/CMakeLists.txt
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
 # additional information regarding copyright ownership.  The ASF licenses this
@@ -44,7 +46,10 @@ if(CONFIG_BENCHMARK_DHRYSTONE)
     endif()
   endif()
 
-  set(CFLAGS -DMSC_CLOCK)
+  set(CFLAGS
+      -DMSC_CLOCK -Wno-maybe-uninitialized -Wno-implicit-int
+      -Wno-strict-prototypes -Wno-implicit-function-declaration
+      -Wno-return-type)
   set(SRCS dhrystone/v2.2/dry.c dhrystone/v2.1/dhry_2.c)
 
   nuttx_add_application(

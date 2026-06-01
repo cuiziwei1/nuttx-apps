@@ -20,6 +20,7 @@
 *.swp
 *.sym
 *.su
+*.map
 *~
 .built
 .context
@@ -27,6 +28,7 @@
 .kconfig
 *.lock
 /bin
+/bin_debug
 /boot_romfsimg.h
 /external
 /Kconfig
@@ -45,3 +47,5 @@ build
 .ccls-cache
 compile_commands.json
 .aider*
+.clang-format
+.cache

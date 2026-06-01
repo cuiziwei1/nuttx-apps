@@ -1,6 +1,8 @@
 # ##############################################################################
 # apps/crypto/mbedtls/CMakeLists.txt
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
 # additional information regarding copyright ownership.  The ASF licenses this
@@ -38,6 +40,8 @@ if(CONFIG_CRYPTO_MBEDTLS)
         ${CMAKE_CURRENT_LIST_DIR}/0001-mbedtls-entropy_poll-use-getrandom-to-get-the-system.patch
         && patch -p1 -d ${MBEDTLS_DIR} <
         ${CMAKE_CURRENT_LIST_DIR}/0002-mbedtls-add-mbedtls-x509-crt-pool.patch
+        && patch -p1 -d ${MBEDTLS_DIR} <
+        ${CMAKE_CURRENT_LIST_DIR}/0003-Fix-MBEDTLS_SSL_DTLS_CONNECTION_ID_COMPAT-warning.patch
       DOWNLOAD_NO_PROGRESS true
       TIMEOUT 30)
 
@@ -90,6 +94,14 @@ if(CONFIG_CRYPTO_MBEDTLS)
       list(APPEND CSRCS ${CMAKE_CURRENT_LIST_DIR}/source/md5_alt.c)
     endif()
 
+    if(CONFIG_MBEDTLS_POLY1305_ALT)
+      list(APPEND CSRCS ${CMAKE_CURRENT_LIST_DIR}/source/poly1305_alt.c)
+    endif()
+
+    if(CONFIG_MBEDTLS_RIPEMD160_ALT)
+      list(APPEND CSRCS ${CMAKE_CURRENT_LIST_DIR}/source/ripemd160_alt.c)
+    endif()
+
     if(CONFIG_MBEDTLS_SHA1_ALT)
       list(APPEND CSRCS ${CMAKE_CURRENT_LIST_DIR}/source/sha1_alt.c)
     endif()
@@ -100,6 +112,10 @@ if(CONFIG_CRYPTO_MBEDTLS)
 
     if(CONFIG_MBEDTLS_SHA512_ALT)
       list(APPEND CSRCS ${CMAKE_CURRENT_LIST_DIR}/source/sha512_alt.c)
+    endif()
+
+    if(CONFIG_MBEDTLS_BIGNUM_ALT)
+      list(APPEND CSRCS ${CMAKE_CURRENT_LIST_DIR}/source/bignum_alt.c)
     endif()
 
   endif()
@@ -113,18 +129,16 @@ if(CONFIG_CRYPTO_MBEDTLS)
   # Library Configuration
   # ############################################################################
 
-  set_property(
-    TARGET nuttx
-    APPEND
-    PROPERTY NUTTX_INCLUDE_DIRECTORIES ${INCDIR})
-  set_property(
-    TARGET nuttx
-    APPEND
-    PROPERTY NUTTX_CXX_INCLUDE_DIRECTORIES ${INCDIR})
-
   nuttx_add_library(mbedtls STATIC)
   target_sources(mbedtls PRIVATE ${CSRCS})
-  target_include_directories(mbedtls PRIVATE ${INCDIR})
+  target_include_directories(mbedtls PUBLIC ${INCDIR})
+  nuttx_export_header(TARGET mbedtls INCLUDE_DIRECTORIES ${MBEDTLS_DIR}/include)
+  # Overlay mbedtls_config.h cannot be in the same nuttx_export_header() as
+  # ${MBEDTLS_DIR}/include (duplicate path). Alt headers need no export; INCDIR
+  # supplies them for this library only.
+  nuttx_create_symlink(
+    ${CMAKE_CURRENT_LIST_DIR}/include/mbedtls/mbedtls_config.h
+    ${NUTTX_APPS_BINDIR}/include/mbedtls/mbedtls/mbedtls_config.h)
   target_compile_definitions(mbedtls PRIVATE unix)
 
   if(CONFIG_ARCH_SIM)

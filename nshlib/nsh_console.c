@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/nshlib/nsh_console.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -34,7 +36,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include "nsh.h"
 #include "nsh_console.h"
@@ -45,9 +47,13 @@
 
 struct serialsave_s
 {
+#ifdef CONFIG_NSH_ALTCONDEV
+  int   cn_confd;     /* Console I/O file descriptor */
+#else
+  int   cn_infd;      /* Re-directed input file descriptor */
+#endif
   int   cn_errfd;     /* Re-directed error output file descriptor */
   int   cn_outfd;     /* Re-directed output file descriptor */
-  int   cn_infd;      /* Re-directed input file descriptor */
 };
 
 /****************************************************************************
@@ -70,7 +76,7 @@ static int nsh_erroroutput(FAR struct nsh_vtbl_s *vtbl,
 #endif
 static FAR char *nsh_consolelinebuffer(FAR struct nsh_vtbl_s *vtbl);
 static void nsh_consoleredirect(FAR struct nsh_vtbl_s *vtbl, int fd_in,
-                                int fd_out, FAR uint8_t *save);
+                                int fd_out, int fd_err, FAR uint8_t *save);
 static void nsh_consoleundirect(FAR struct nsh_vtbl_s *vtbl,
                                 FAR uint8_t *save);
 static void nsh_consoleexit(FAR struct nsh_vtbl_s *vtbl,
@@ -125,18 +131,19 @@ static ssize_t nsh_consolewrite(FAR struct nsh_vtbl_s *vtbl,
                                 FAR const void *buffer, size_t nbytes)
 {
   FAR struct console_stdio_s *pstate = (FAR struct console_stdio_s *)vtbl;
-  ssize_t ret;
 
-  /* Write the data to the output stream */
+  /* Write the data to the output stream.
+   *
+   * Errors are reported to the caller via the negative return value and
+   * errno; do NOT _err() here.  OUTFD may itself be wired to the syslog
+   * backend (e.g. nsh_catfile dumping /dev/log on dmesg), in which case
+   * logging on write failure would produce new bytes, get picked up by
+   * the next read(), and lock the shell into an infinite loop at the
+   * highest priority — independent of which errno (EPIPE/EIO/ENOSPC/...)
+   * the underlying device returns.
+   */
 
-  ret = write(OUTFD(pstate), buffer, nbytes);
-  if (ret < 0)
-    {
-      _err("ERROR: [%d] Failed to send buffer: %d\n",
-          OUTFD(pstate), errno);
-    }
-
-  return ret;
+  return write(OUTFD(pstate), buffer, nbytes);
 }
 
 /****************************************************************************
@@ -326,7 +333,7 @@ static void nsh_consolerelease(FAR struct nsh_vtbl_s *vtbl)
  ****************************************************************************/
 
 static void nsh_consoleredirect(FAR struct nsh_vtbl_s *vtbl, int fd_in,
-                                int fd_out, FAR uint8_t *save)
+                                int fd_out, int fd_err, FAR uint8_t *save)
 {
   FAR struct console_stdio_s *pstate = (FAR struct console_stdio_s *)vtbl;
   FAR struct serialsave_s *ssave  = (FAR struct serialsave_s *)save;
@@ -348,6 +355,7 @@ static void nsh_consoleredirect(FAR struct nsh_vtbl_s *vtbl, int fd_in,
 
   OUTFD(pstate) = fd_out;
   INFD(pstate) = fd_in;
+  ERRFD(pstate) = fd_err;
 }
 
 /****************************************************************************
@@ -438,6 +446,13 @@ FAR struct console_stdio_s *nsh_newconsole(bool isctty)
       /* Initialize the input stream */
 
       INFD(pstate)               = STDIN_FILENO;
+
+      /* Initialize current working directory */
+
+#ifdef CONFIG_DISABLE_ENVIRON
+      strlcpy(pstate->cn_vtbl.cwd, CONFIG_LIBC_HOMEDIR,
+              sizeof(pstate->cn_vtbl.cwd));
+#endif
     }
 
   return pstate;

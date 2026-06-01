@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/system/gdbstub/gdbstub.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -68,15 +70,14 @@ static int gdb_monitor(FAR struct gdb_state_s *state, FAR const char *cmd)
 #endif
 }
 
-static ssize_t gdb_send(FAR void *priv, FAR void *buf,
-                        size_t len)
+static ssize_t gdb_send(FAR void *priv, FAR const char *buf, size_t len)
 {
   int fd = *(FAR int *)priv;
   size_t i = 0;
 
   while (i < len)
     {
-      ssize_t ret = write(fd, (FAR char *)buf + i, len - i);
+      ssize_t ret = write(fd, buf + i, len - i);
       if (ret < 0)
         {
           return -errno;

@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/system/debugpoint/debug.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -38,7 +40,7 @@
  ****************************************************************************/
 
 static uint8_t g_test_data[8];
-static const char g_test_rodata[] = "This is a read-only string";
+static const char g_test_rodata[32] = "This is a read-only string";
 
 /****************************************************************************
  * Name: debug_option
@@ -287,7 +289,7 @@ static bool parse_options(int argc, FAR char *argv[],
                           struct debug_option *opt)
 {
   int cmd;
-  while ((cmd = getopt(argc, argv, "r:w:b:x:cl")) != -1)
+  while ((cmd = getopt(argc, argv, "r:w:b:x:cl:")) != -1)
     {
       switch (cmd)
         {

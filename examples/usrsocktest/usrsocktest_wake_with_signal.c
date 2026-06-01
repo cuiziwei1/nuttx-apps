@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/examples/usrsocktest/usrsocktest_wake_with_signal.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -144,10 +146,19 @@ static void do_usrsock_blocking_socket_thread(FAR void *param)
   TEST_ASSERT_TRUE(test_hang);
   TEST_ASSERT_TRUE(test_abort);
 
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+#endif
+
   /* Allow main thread to hang usrsock daemon at this point. */
 
   sem_post(&tid_startsem);
   sem_wait(&tid_releasesem);
+
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_testcancel();
+#endif
 
   /* Attempt hanging open socket. */
 
@@ -174,6 +185,11 @@ static void do_usrsock_blocking_close_thread(FAR void *param)
   TEST_ASSERT_TRUE(test_hang);
   TEST_ASSERT_TRUE(test_abort);
 
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+#endif
+
   /* Open socket. */
 
   test_sd[tidx] = socket(AF_INET, SOCK_STREAM, 0);
@@ -187,6 +203,10 @@ static void do_usrsock_blocking_close_thread(FAR void *param)
 
   sem_post(&tid_startsem);
   sem_wait(&tid_releasesem);
+
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_testcancel();
+#endif
 
   /* Attempt hanging close socket. */
 
@@ -212,6 +232,11 @@ static void do_usrsock_blocking_connect_thread(FAR void *param)
 
   TEST_ASSERT_TRUE(test_hang || !test_hang);
 
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+#endif
+
   /* Open socket. */
 
   test_sd[tidx] = socket(AF_INET, SOCK_STREAM, 0);
@@ -225,6 +250,10 @@ static void do_usrsock_blocking_connect_thread(FAR void *param)
 
   sem_post(&tid_startsem);
   sem_wait(&tid_releasesem);
+
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_testcancel();
+#endif
 
   /* Attempt blocking connect. */
 
@@ -255,6 +284,11 @@ static void do_usrsock_blocking_setsockopt_thread(FAR void *param)
   bool test_abort = !!(test_flags & TEST_FLAG_DAEMON_ABORT);
   bool test_hang = !!(test_flags & TEST_FLAG_PAUSE_USRSOCK_HANDLING);
 
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+#endif
+
   /* Open socket. */
 
   test_sd[tidx] = socket(AF_INET, SOCK_STREAM, 0);
@@ -271,6 +305,10 @@ static void do_usrsock_blocking_setsockopt_thread(FAR void *param)
 
   sem_post(&tid_startsem);
   sem_wait(&tid_releasesem);
+
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_testcancel();
+#endif
 
   /* Attempt hanging setsockopt. */
 
@@ -302,6 +340,11 @@ static void do_usrsock_blocking_getsockopt_thread(FAR void *param)
   bool test_abort = !!(test_flags & TEST_FLAG_DAEMON_ABORT);
   bool test_hang = !!(test_flags & TEST_FLAG_PAUSE_USRSOCK_HANDLING);
 
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+#endif
+
   /* Open socket. */
 
   test_sd[tidx] = socket(AF_INET, SOCK_STREAM, 0);
@@ -318,6 +361,10 @@ static void do_usrsock_blocking_getsockopt_thread(FAR void *param)
 
   sem_post(&tid_startsem);
   sem_wait(&tid_releasesem);
+
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_testcancel();
+#endif
 
   /* Attempt hanging getsockopt. */
 
@@ -350,6 +397,11 @@ static void do_usrsock_blocking_send_thread(FAR void *param)
 
   TEST_ASSERT_TRUE(test_hang || !test_hang);
 
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+#endif
+
   /* Open socket. */
 
   test_sd[tidx] = socket(AF_INET, SOCK_STREAM, 0);
@@ -369,6 +421,10 @@ static void do_usrsock_blocking_send_thread(FAR void *param)
 
   sem_post(&tid_startsem);
   sem_wait(&tid_releasesem);
+
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_testcancel();
+#endif
 
   /* Attempt blocking send. */
 
@@ -399,6 +455,11 @@ static void do_usrsock_blocking_recv_thread(FAR void *param)
 
   TEST_ASSERT_TRUE(test_hang || !test_hang);
 
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+#endif
+
   /* Open socket. */
 
   test_sd[tidx] = socket(AF_INET, SOCK_STREAM, 0);
@@ -418,6 +479,10 @@ static void do_usrsock_blocking_recv_thread(FAR void *param)
 
   sem_post(&tid_startsem);
   sem_wait(&tid_releasesem);
+
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_testcancel();
+#endif
 
   /* Attempt blocking recv. */
 
@@ -452,6 +517,11 @@ static void do_usrsock_blocking_poll_thread(FAR void *param)
   TEST_ASSERT_TRUE(test_abort);
   TEST_ASSERT_TRUE(test_hang || !test_hang);
 
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+#endif
+
   /* Open socket. */
 
   test_sd[tidx] = socket(AF_INET, SOCK_STREAM, 0);
@@ -471,6 +541,10 @@ static void do_usrsock_blocking_poll_thread(FAR void *param)
 
   sem_post(&tid_startsem);
   sem_wait(&tid_releasesem);
+
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_testcancel();
+#endif
 
   /* Attempt poll. */
 
@@ -558,8 +632,11 @@ static void do_wake_test(enum e_test_type type, int flags)
 
       for (tidx = 0; tidx < nthreads; tidx++)
         {
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+          pthread_cancel(tid[tidx]);
+#else
           pthread_kill(tid[tidx], SIGUSR1);
-
+#endif
           /* Wait threads to complete work. */
 
           ret = pthread_join(tid[tidx], NULL);
@@ -648,7 +725,7 @@ TEST_SETUP(wake_with_signal)
 
 TEST_TEAR_DOWN(wake_with_signal)
 {
-  int ret;
+  int unused_data ret;
   int i;
 
   for (i = 0; i < MAX_THREADS; i++)

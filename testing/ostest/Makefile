@@ -1,6 +1,8 @@
 ############################################################################
 # apps/testing/ostest/Makefile
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.  The
@@ -29,8 +31,15 @@ MODULE = $(CONFIG_TESTING_OSTEST)
 
 # NuttX OS Test
 
-CSRCS   = getopt.c libc_memmem.c restart.c sigprocmask.c sighand.c \
-          signest.c sighelper.c
+CSRCS  = getopt.c libc_memmem.c restart.c sighelper.c
+
+ifeq ($(CONFIG_ENABLE_ALL_SIGNALS),y)
+CSRCS += sighand.c signest.c
+endif
+
+ifneq ($(CONFIG_DISABLE_ALL_SIGNALS),y)
+CSRCS += sigprocmask.c
+endif
 
 MAINSRC = ostest_main.c
 
@@ -56,6 +65,10 @@ endif
 
 ifneq ($(CONFIG_TLS_NELEM),0)
 CSRCS += tls.c
+endif
+
+ifeq ($(CONFIG_SCHED_THREAD_LOCAL),y)
+CSRCS += sched_thread_local.c
 endif
 
 ifeq ($(CONFIG_TESTING_OSTEST_AIO),y)
@@ -113,7 +126,10 @@ endif # CONFIG_DISABLE_PTHREAD
 
 ifneq ($(CONFIG_DISABLE_MQUEUE),y)
 ifneq ($(CONFIG_DISABLE_PTHREAD),y)
-CSRCS += mqueue.c timedmqueue.c
+CSRCS += timedmqueue.c
+ifneq ($(CONFIG_DISABLE_ALL_SIGNALS),y)
+CSRCS += mqueue.c
+endif
 endif # CONFIG_DISABLE_PTHREAD
 endif # CONFIG_DISABLE_MQUEUE
 
@@ -134,13 +150,25 @@ ifeq ($(CONFIG_ARCH_SETJMP_H),y)
 CSRCS += setjmp.c
 endif
 
-ifeq ($(CONFIG_SMP_CALL),y)
+ifeq ($(CONFIG_SMP),y)
 CSRCS += smp_call.c
 endif
 
 ifeq ($(CONFIG_SCHED_EVENTS),y)
 ifeq ($(CONFIG_BUILD_FLAT),y)
 CSRCS += nxevent.c
+endif
+endif
+
+ifeq ($(CONFIG_ARCH_HAVE_PERF_EVENTS),y)
+CSRCS += perf_gettime.c
+endif
+
+ifeq ($(CONFIG_BUILD_FLAT),y)
+CSRCS += wdog.c spinlock.c
+
+ifeq ($(CONFIG_HRTIMER),y)
+CSRCS += hrtimer.c
 endif
 endif
 

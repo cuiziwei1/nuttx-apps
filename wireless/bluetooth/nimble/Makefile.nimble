@@ -1,6 +1,8 @@
 ############################################################################
 # apps/wireless/bluetooth/nimble/Makefile.nimble
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.  The
@@ -62,7 +64,7 @@ CXXFLAGS += $(addprefix ${INCDIR_PREFIX}, $(NIMBLE_ALL_INC))
 
 # NimBLE assumes this flag since it expects undefined macros to be zero value
 
-CFLAGS += -Wno-pointer-to-int-cast -Wno-undef
+CFLAGS += -Wno-undef
 
 # disable printf format checks
 

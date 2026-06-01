@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/examples/lvgldemo/lvgldemo.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -36,25 +38,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Should we perform board-specific driver initialization? There are two
- * ways that board initialization can occur:  1) automatically via
- * board_late_initialize() during bootupif CONFIG_BOARD_LATE_INITIALIZE
- * or 2).
- * via a call to boardctl() if the interface is enabled
- * (CONFIG_BOARDCTL=y).
- * If this task is running as an NSH built-in application, then that
- * initialization has probably already been performed otherwise we do it
- * here.
- */
-
-#undef NEED_BOARDINIT
-
-#if defined(CONFIG_BOARDCTL) && !defined(CONFIG_NSH_ARCHINIT)
-#  define NEED_BOARDINIT 1
-#endif
-
 /****************************************************************************
- * Private Type Declarations
+ * Private Types
  ****************************************************************************/
 
 /****************************************************************************
@@ -114,12 +99,11 @@ int main(int argc, FAR char *argv[])
   lv_memzero(&ui_loop, sizeof(ui_loop));
 #endif
 
-#ifdef NEED_BOARDINIT
-  /* Perform board-specific driver initialization */
-
-  boardctl(BOARDIOC_INIT, 0);
-
-#endif
+  if (lv_is_initialized())
+    {
+      LV_LOG_ERROR("LVGL already initialized! aborting.");
+      return -1;
+    }
 
   lv_init();
 
@@ -127,6 +111,10 @@ int main(int argc, FAR char *argv[])
 
 #ifdef CONFIG_LV_USE_NUTTX_LCD
   info.fb_path = "/dev/lcd0";
+#endif
+
+#ifdef CONFIG_INPUT_TOUCHSCREEN
+  info.input_path = CONFIG_EXAMPLES_LVGLDEMO_INPUT_DEVPATH;
 #endif
 
   lv_nuttx_init(&info, &result);
@@ -162,7 +150,7 @@ int main(int argc, FAR char *argv[])
 #endif
 
 demo_end:
-  lv_disp_remove(result.disp);
+  lv_nuttx_deinit(&result);
   lv_deinit();
 
   return 0;

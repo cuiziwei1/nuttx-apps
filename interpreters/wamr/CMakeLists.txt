@@ -1,6 +1,8 @@
 # ##############################################################################
 # apps/interpreters/wamr/CMakeLists.txt
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
 # additional information regarding copyright ownership.  The ASF licenses this
@@ -46,6 +48,12 @@ if(CONFIG_INTERPRETERS_WAMR)
   endif()
 
   nuttx_add_library(wamr STATIC)
+
+  set_property(
+    TARGET nuttx
+    APPEND
+    PROPERTY NUTTX_INCLUDE_DIRECTORIES
+             ${CMAKE_CURRENT_SOURCE_DIR}/wamr/core/iwasm/include)
 
   include(${WAMR_DIR}/product-mini/platforms/nuttx/CMakeLists.txt)
   target_sources(wamr PRIVATE ${WAMR_SOURCES})

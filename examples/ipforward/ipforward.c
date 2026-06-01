@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/examples/ipforward/ipforward.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -73,7 +75,7 @@
 #endif
 
 /****************************************************************************
- * Name: Private Types
+ * Private Types
  ****************************************************************************/
 
 struct ipfwd_tun_s
@@ -540,8 +542,16 @@ static FAR void *ipfwd_receiver(FAR void *arg)
   int errcode;
   int i;
 
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);
+  pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, NULL);
+#endif
+
   for (i = 0; i < IPFWD_NPACKETS; i++)
     {
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+      pthread_testcancel();
+#endif
       nread = read(fwd->ia_fd, fwd->ia_buffer, IPFWD_BUFSIZE);
       if (nread < 0)
         {
@@ -838,7 +848,12 @@ errout_with_receiver:
 
   /* Wait for receiver thread to terminate */
 
+#ifdef CONFIG_DISABLE_ALL_SIGNALS
+  pthread_cancel(fwd.if_receiver);
+#else
   pthread_kill(fwd.if_receiver, 9);
+#endif
+
   ret = pthread_join(fwd.if_receiver, &value);
   if (ret != OK)
     {

@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/nshlib/nsh_timcmds.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -24,7 +26,10 @@
 
 #include <nuttx/config.h>
 
+#include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <strings.h>
 #include <unistd.h>
 #include <time.h>
@@ -116,7 +121,7 @@ static inline int date_showtime(FAR struct nsh_vtbl_s *vtbl,
 
   if (utc)
     {
-      if (gmtime_r((FAR const time_t *)&ts.tv_sec, &tm) == NULL)
+      if (gmtime_r(&ts.tv_sec, &tm) == NULL)
         {
           nsh_error(vtbl, g_fmtcmdfailed, name, "gmtime_r", NSH_ERRNO);
           return ERROR;
@@ -124,7 +129,7 @@ static inline int date_showtime(FAR struct nsh_vtbl_s *vtbl,
     }
   else
     {
-      if (localtime_r((FAR const time_t *)&ts.tv_sec, &tm) == NULL)
+      if (localtime_r(&ts.tv_sec, &tm) == NULL)
         {
           nsh_error(vtbl, g_fmtcmdfailed, name, "localtime_r", NSH_ERRNO);
           return ERROR;
@@ -261,6 +266,10 @@ static inline int date_settime(FAR struct nsh_vtbl_s *vtbl,
 
   tm.tm_year = (int)result - 1900;
 
+  /* Information about daylight saving not available -> let TZ handle it */
+
+  tm.tm_isdst = -1;
+
   /* Convert this to the right form, then set the timer */
 
   ts.tv_sec  = utc ? timegm(&tm): mktime(&tm);
@@ -346,8 +355,8 @@ int cmd_time(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
             }
 
           diff.tv_nsec = end.tv_nsec - start.tv_nsec;
-          nsh_output(vtbl, "\n%lu.%04lu sec\n", (unsigned long)diff.tv_sec,
-                     (unsigned long)diff.tv_nsec / 100000);
+          nsh_output(vtbl, "\n%jd.%04ld sec\n", (intmax_t)diff.tv_sec,
+                     diff.tv_nsec / 100000);
         }
     }
 
@@ -434,6 +443,7 @@ int cmd_date(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
   return ret;
 
 errout:
+  optind = 0;
   nsh_error(vtbl, errfmt, argv[0]);
   return ERROR;
 }
@@ -480,7 +490,7 @@ int cmd_timedatectl(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
           return ERROR;
         }
 
-      if (localtime_r((FAR const time_t *)&ts.tv_sec, &tm) == NULL)
+      if (localtime_r(&ts.tv_sec, &tm) == NULL)
         {
           nsh_error(vtbl, g_fmtcmdfailed, argv[0], "localtime_r", NSH_ERRNO);
           return ERROR;
@@ -499,7 +509,7 @@ int cmd_timedatectl(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
                  tm.tm_gmtoff);
       nsh_output(vtbl, "    Local time: %s %s\n", timbuf, tm.tm_zone);
 
-      if (gmtime_r((FAR const time_t *)&ts.tv_sec, &tm) == NULL)
+      if (gmtime_r(&ts.tv_sec, &tm) == NULL)
         {
           nsh_error(vtbl, g_fmtcmdfailed, argv[0], "gmtime_r", NSH_ERRNO);
           return ERROR;
@@ -542,5 +552,72 @@ int cmd_timedatectl(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
     }
 
   return ret;
+}
+#endif
+
+#ifndef CONFIG_NSH_DISABLE_WATCH
+int cmd_watch(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
+{
+  int interval = 2;
+  int count = -1;
+  FAR char *cmd;
+  int option;
+  int ret;
+  int i;
+
+  while ((option = getopt(argc, argv, "n:c:")) != ERROR)
+    {
+      switch (option)
+        {
+          case 'n':
+            interval = atoi(optarg);
+            break;
+
+          case 'c':
+            count = atoi(optarg);
+            break;
+
+          default:
+            nsh_error(vtbl, g_fmtarginvalid, argv[0]);
+            return ERROR;
+        }
+    }
+
+  if (optind < argc)
+    {
+      cmd = argv[optind];
+    }
+  else
+    {
+      nsh_error(vtbl, g_fmtarginvalid, argv[0]);
+      return ERROR;
+    }
+
+  if (count < 0)
+    {
+      count = INT_MAX;
+    }
+
+  for (i = 0; i < count; i++)
+    {
+      FAR char *buffer = lib_get_tempbuffer(LINE_MAX);
+      if (buffer == NULL)
+        {
+          return ERROR;
+        }
+
+      strlcpy(buffer, cmd, LINE_MAX);
+      ret = nsh_parse(vtbl, buffer);
+      lib_put_tempbuffer(buffer);
+      if (ret < 0)
+        {
+          nsh_error(vtbl, g_fmtcmdfailed, argv[0], cmd, NSH_ERRNO);
+          return ERROR;
+        }
+
+      sleep(interval);
+    }
+
+  return OK;
 }
 #endif

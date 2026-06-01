@@ -1,6 +1,8 @@
 ############################################################################
 # apps/system/zlib/Makefile
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.  The
@@ -29,6 +31,7 @@ CSRCS += zlib/contrib/minizip/zip.c
 
 CFLAGS += -Dunix -Wno-shadow -Wno-strict-prototypes -Wno-undef
 CFLAGS += ${INCDIR_PREFIX}zlib
+zlib/test/infcover.c_CFLAGS += -Wno-format
 
 ZLIB_ZIP = zlib13.zip
 ZLIB_SRC = zlib
@@ -84,5 +87,8 @@ STACKSIZE += $(CONFIG_LIB_ZLIB_TEST_STACKSIZE)
 PROGNAME += zlib_infcover_test
 MAINSRC += zlib/test/infcover.c
 endif
+
+CFLAGS += -DMAX_WBITS=$(CONFIG_LIB_ZLIB_MAX_WBITS)
+CFLAGS += -DMAX_MEM_LEVEL=$(CONFIG_LIB_ZLIB_MAX_MEM_LEVEL)
 
 include $(APPDIR)/Application.mk

@@ -1,6 +1,8 @@
 //***************************************************************************
 // apps/crypto/controlse/controlse_main.cxx
 //
+// SPDX-License-Identifier: Apache-2.0
+//
 // Licensed to the Apache Software Foundation (ASF) under one or more
 // contributor license agreements.  See the NOTICE file distributed with
 // this work for additional information regarding copyright ownership.  The
@@ -699,8 +701,12 @@ int main(int argc, FAR char *argv[])
 #ifdef CONFIG_STACK_COLORATION
       FAR struct tcb_s *tcb;
       tcb = nxsched_get_tcb(getpid());
-      fprintf(stderr, "\nStack used: %zu / %zu\n", up_check_tcbstack(tcb),
-              tcb->adj_stack_size);
+      if (tcb != NULL)
+        {
+          fprintf(stderr, "\nStack used: %zu / %zu\n", up_check_tcbstack(tcb),
+                  tcb->adj_stack_size);
+          nxsched_put_tcb(tcb);
+        }
 #else
       fprintf(stderr, "\nStack used: unknown"
                       " (STACK_COLORATION must be enabled)\n");

@@ -1,6 +1,8 @@
 ############################################################################
 # apps/benchmarks/coremark/Makefile
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.  The
@@ -84,6 +86,11 @@ CFLAGS += ${DEFINE_PREFIX}ITERATIONS=$(CONFIG_COREMARK_ITERATIONS_COUNT)
 else
 CFLAGS += ${DEFINE_PREFIX}ITERATIONS=0
 endif
+
+CFLAGS += ${DEFINE_PREFIX}crcu8=coremark_crcu8
+CFLAGS += ${DEFINE_PREFIX}crcu16=coremark_crcu16
+CFLAGS += ${DEFINE_PREFIX}crcu32=coremark_crcu32
+CFLAGS += ${DEFINE_PREFIX}crc16=coremark_crc16
 
 CSRCS += core_list_join.c
 CSRCS += core_matrix.c

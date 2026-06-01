@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/system/popen/popen.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -33,8 +35,9 @@
 #include <sched.h>
 #include <spawn.h>
 #include <assert.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include "nshlib/nshlib.h"
 
@@ -309,7 +312,7 @@ FILE *popen(FAR const char *command, FAR const char *mode)
 
   close(newfd[0]);
 
-  if (rw)
+  if (rw && newfd[0] != newfd[1])
     {
       close(newfd[1]);
     }

@@ -1,6 +1,8 @@
 ############################################################################
 # apps/testing/cmocka/Makefile
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.  The
@@ -27,12 +29,14 @@ CFLAGS += -DHAVE_CLOCK_REALTIME=1
 CFLAGS += -DHAVE_STRUCT_TIMESPEC=1
 CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/testing/cmocka
 
+MODULE = $(CONFIG_TESTING_CMOCKA_PROG)
+
+ifneq ($(CONFIG_TESTING_CMOCKA_PROG),)
 PROGNAME  = $(CONFIG_TESTING_CMOCKA_PROGNAME)
 PRIORITY  = $(CONFIG_TESTING_CMOCKA_PRIORITY)
 STACKSIZE = $(CONFIG_TESTING_CMOCKA_STACKSIZE)
-MODULE    = $(CONFIG_TESTING_CMOCKA)
-
-MAINSRC = $(CURDIR)/cmocka_main.c
+MAINSRC   = $(CURDIR)/cmocka_main.c
+endif
 
 # Download and unpack tarball if no git repo found
 ifeq ($(wildcard cmocka/.git),)

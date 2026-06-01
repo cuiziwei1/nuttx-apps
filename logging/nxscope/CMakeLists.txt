@@ -1,6 +1,8 @@
 # ##############################################################################
 # apps/logging/nxscope/CMakeLists.txt
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
 # additional information regarding copyright ownership.  The ASF licenses this
@@ -23,6 +25,10 @@ if(CONFIG_LOGGING_NXSCOPE)
 
   if(CONFIG_LOGGING_NXSCOPE_INTF_SERIAL)
     list(APPEND CSRCS nxscope_iser.c)
+  endif()
+
+  if(CONFIG_LOGGING_NXSCOPE_INTF_UDP)
+    list(APPEND CSRCS nxscope_iudp.c)
   endif()
 
   if(CONFIG_LOGGING_NXSCOPE_INTF_DUMMY)

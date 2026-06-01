@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/system/ymodem/ymodem.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -96,7 +98,7 @@ static int ymodem_send_buffer(FAR struct ymodem_ctx_s *ctx,
   ymodem_debug("send buffer data, write size is %zu\n", size);
   while (i < size)
     {
-      ssize_t ret = write(ctx->sendfd, buf, size);
+      ssize_t ret = write(ctx->sendfd, buf + i, size - i);
       if (ret >= 0)
         {
           ymodem_debug("send buffer data, size %zd\n", ret);
@@ -171,7 +173,7 @@ static int ymodem_recv_packet(FAR struct ymodem_ctx_s *ctx)
 
   recv_crc = (ctx->data[ctx->packet_size] << 8) +
               ctx->data[ctx->packet_size + 1];
-  cal_crc = crc16(ctx->data, ctx->packet_size);
+  cal_crc = crc16xmodem(ctx->data, ctx->packet_size);
   if (cal_crc != recv_crc)
     {
       ymodem_debug("recv_packet: EBADMSG rcev:cal=0x%x 0x%x\n",
@@ -307,24 +309,25 @@ cancel:
 
 static int ymodem_recv_cmd(FAR struct ymodem_ctx_s *ctx, uint8_t cmd)
 {
+  uint8_t recv;
   int ret;
 
-  ret = ymodem_recv_buffer(ctx, ctx->header, 1);
+  ret = ymodem_recv_buffer(ctx, &recv, 1);
   if (ret < 0)
     {
       ymodem_debug("recv cmd error\n");
       return ret;
     }
 
-  if (ctx->header[0] == NAK)
+  if (recv == NAK)
     {
       return -EAGAIN;
     }
 
-  if (ctx->header[0] != cmd)
+  if (recv != cmd)
     {
       ymodem_debug("recv cmd error, must 0x%x, but receive 0x%x\n",
-                   cmd, ctx->header[0]);
+                   cmd, recv);
       return -EINVAL;
     }
 
@@ -370,7 +373,7 @@ send_start:
   ctx->header[1] = 0x00;
   ctx->header[2] = 0xff;
   ctx->packet_size = YMODEM_PACKET_SIZE;
-  crc = crc16(ctx->data, ctx->packet_size);
+  crc = crc16xmodem(ctx->data, ctx->packet_size);
   ctx->data[ctx->packet_size] = crc >> 8;
   ctx->data[ctx->packet_size + 1] = crc;
 
@@ -435,7 +438,7 @@ send_packet:
       return ret;
     }
 
-  crc = crc16(ctx->data, ctx->packet_size);
+  crc = crc16xmodem(ctx->data, ctx->packet_size);
   ctx->data[ctx->packet_size] = crc >> 8;
   ctx->data[ctx->packet_size + 1] = crc;
 send_packet_again:
@@ -509,7 +512,7 @@ send_last:
   ctx->packet_type = YMODEM_DATA_PACKET;
   ctx->packet_size = YMODEM_PACKET_SIZE;
   memset(ctx->data, 0, YMODEM_PACKET_SIZE);
-  crc = crc16(ctx->data, ctx->packet_size);
+  crc = crc16xmodem(ctx->data, ctx->packet_size);
   ctx->data[ctx->packet_size] = crc >> 8;
   ctx->data[ctx->packet_size + 1] = crc;
 send_last_again:

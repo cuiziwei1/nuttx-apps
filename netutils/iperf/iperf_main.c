@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/netutils/iperf/iperf_main.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -138,7 +140,10 @@ int main(int argc, FAR char *argv[])
   struct iperf_cfg_t cfg;
   struct in_addr addr;
   int nerrors;
+
+#ifdef CONFIG_NET_IPv4
   char inetaddr[INET_ADDRSTRLEN];
+#endif
 
   bzero(&addr, sizeof(struct in_addr));
   bzero(&cfg, sizeof(cfg));
@@ -224,6 +229,7 @@ int main(int argc, FAR char *argv[])
     }
   else
     {
+#ifdef CONFIG_NET_IPv4
       if (iperf_args.bind->count > 0)
         {
           addr.s_addr = inet_addr(iperf_args.bind->sval[0]);
@@ -246,6 +252,10 @@ int main(int argc, FAR char *argv[])
       printf("     IP: %s\n", inet_ntoa_r(addr, inetaddr, sizeof(inetaddr)));
 
       cfg.sip = addr.s_addr;
+#else
+      printf("ERROR: IPv4 Not Enabled\n");
+      goto out;
+#endif
     }
 
   if (iperf_args.udp->count == 0)
